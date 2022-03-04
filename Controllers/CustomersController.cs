@@ -5,16 +5,19 @@ using LibApp.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using LibApp.Models;
 using System;
+using LibApp.Interfaces;
 
 namespace LibApp.Controllers
 {
     public class CustomersController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICustomerRepository _customerRepository;
+        private readonly IMembershipTypeRepository _membershipTypeRepository;
 
-        public CustomersController(ApplicationDbContext context)
+        public CustomersController(ICustomerRepository customerRepository, IMembershipTypeRepository membershipTypeRepository)
         {
-            _context = context;
+            _customerRepository = customerRepository;
+            _membershipTypeRepository = membershipTypeRepository;
         }
 
         public ViewResult Index()
@@ -24,8 +27,7 @@ namespace LibApp.Controllers
 
         public IActionResult Details(int id)
         {
-            var customer = _context.Customers
-                .Include(c => c.MembershipType)
+            var customer = _customerRepository.GetCustomers()
                 .SingleOrDefault(c => c.Id == id);
 
             if (customer == null)
@@ -38,7 +40,7 @@ namespace LibApp.Controllers
 
         public IActionResult New()
         {
-            var membershipTypes = _context.MembershipTypes.ToList();
+            var membershipTypes = _membershipTypeRepository.GetMembershipTypes();
 
             var viewModel = new CustomerFormViewModel()
             {
@@ -50,7 +52,7 @@ namespace LibApp.Controllers
 
         public IActionResult Edit(int id)
         {
-            var customer = _context.Customers.SingleOrDefault(c => c.Id == id);
+            var customer = _customerRepository.Get(id);
             if (customer == null)
             {
                 return NotFound();
@@ -58,7 +60,7 @@ namespace LibApp.Controllers
 
             var viewModel = new CustomerFormViewModel(customer)
             {
-                MembershipTypes = _context.MembershipTypes.ToList()
+                MembershipTypes = _membershipTypeRepository.GetMembershipTypes()
             };
 
             return View("CustomerForm", viewModel);
@@ -72,7 +74,7 @@ namespace LibApp.Controllers
             {
                 var viewModel = new CustomerFormViewModel(customer)
                 {
-                    MembershipTypes = _context.MembershipTypes.ToList()
+                    MembershipTypes = _membershipTypeRepository.GetMembershipTypes()
                 };
 
                 return View("CustomerForm", viewModel);
@@ -80,11 +82,11 @@ namespace LibApp.Controllers
 
             if (customer.Id == 0)
             {
-                _context.Customers.Add(customer);
+                _customerRepository.Add(customer);
             }
             else
             {
-                var customerInDb = _context.Customers.Single(c => c.Id == customer.Id);
+                var customerInDb = _customerRepository.Get(customer.Id);
                 customerInDb.Name = customer.Name;
                 customerInDb.Birthdate = customer.Birthdate;
                 customerInDb.MembershipTypeId = customer.MembershipTypeId;
@@ -93,7 +95,7 @@ namespace LibApp.Controllers
 
             try
             {
-                _context.SaveChanges();
+                _customerRepository.Save();
             }
             catch (DbUpdateException e)
             {
