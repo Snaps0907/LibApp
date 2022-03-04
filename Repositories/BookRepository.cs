@@ -18,7 +18,12 @@ namespace LibApp.Repositories
             return _context.Books.Include(item => item.Genre);
         }
 
-        public Book Get(int id) => _context.Books.Find(id);
+        public Book Get(int id)
+        {
+            var book = _context.Books.Find(id);
+            book.Genre = _context.Genre.Find(book.GenreId);
+            return book;
+        }
 
         public void Add(Book item) => _context.Books.Add(item);
 
